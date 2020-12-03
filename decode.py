@@ -46,12 +46,12 @@ class Io():
         n = self.buf[self.cur_pos:].index(needle)
         return self.readn(n)
 
-    def parse_png(self):
-        path_without_ext = self.rstr()
-        dbg(path_without_ext, "path_without_ext")
-        self.parse("png")
+    def parse_with_path(self, extension: str = None, dump_files: bool = False):
+        dir = self.rstr()
+        dbg(dir, "dir")
+        self.parse(extension, dump_files)
 
-    def parse(self, extension: str):
+    def parse(self, extension: str = None, dump_files: bool = False):
         dir_id = 1
         while True:
             print(self.cur_pos)
@@ -79,11 +79,12 @@ class Io():
             print("vpk_size")
             print(vpk_size)
 
-            with open(f"pak{dir_id:02d}_{pak_id:03d}.vpk", "rb") as vpk_archive:
-                with open(f"{vpk_filename}.{extension}", "wb") as extracted_file:
-                    vpk_archive.seek(vpk_offset)
-                    blob = vpk_archive.read(vpk_size)
-                    extracted_file.write(blob)
+            if dump_files:
+                with open(f"pak{dir_id:02d}_{pak_id:03d}.vpk", "rb") as vpk_archive:
+                    with open(f"{vpk_filename}.{extension}", "wb") as extracted_file:
+                        vpk_archive.seek(vpk_offset)
+                        blob = vpk_archive.read(vpk_size)
+                        extracted_file.write(blob)
 
             vpk_block_end = self.readn(2)
             dbg(vpk_block_end, "vpk_block_end")
@@ -96,9 +97,10 @@ class Io():
         self.parse("bik")
 
 def dbg(v: Any, s: str = None):
-    if s:
-        print(s)
-    print(hexdump(v, total=False))
+    pass
+    # if s:
+    #     print(s)
+    # print(hexdump(v, total=False))
 
 def main():
     vpk_filename = sys.argv[1]
@@ -126,14 +128,20 @@ def main():
     while True:
         blob = io.readuntil(b"\xff\xff\x00\x00")
         io.skip(4)
-        fileformat = io.rstr()
-        if fileformat == "png":
-            io.parse_png()
-        # print(io.cur_pos)
+        try:
+            fileformat = io.rstr()
+        except Exception as e:
+            print("my bad lol")
+            continue
         if len(fileformat) == 0:
             raise ValueError("Plausibly file end -- boo")
         # dbg(fileformat, "fileformat")
 
+        io.parse_with_path(fileformat, False)
+        # if fileformat == "png":
+        #     # io.parse_with_path(fileformat)
+        #     pass
+        # elif fileformat == "mp4":
         # if fileformat == "bik":
         #     io.parse_bik()
         # elif fileformat == "media":
